@@ -8,6 +8,8 @@ This is a clean-room remake of [File Viewer](https://github.com/robertsundstrom/
 
 Approx. 1,5 year later.
 
+Watch the [video](https://www.youtube.com/watch?v=kWz61jGjuKM).
+
 ## Scenario
 
 **TL;DR;** Parses file paths and displays them in a tree view.

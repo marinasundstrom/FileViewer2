@@ -1,0 +1,181 @@
+﻿@implements IDisposable
+
+<MudTreeView T="TreeItemData" Items="@rootItems" SelectedValueChanged="OnItemSelected">
+    <ItemTemplate>
+        <MudTreeViewItem @bind-Selected="context.IsSelected" @bind-Expanded="@context.IsExpanded" Value="@context" Items="@context.TreeItems">
+            <Content>
+                <MudTreeViewItemToggleButton @bind-Expanded="@context.IsExpanded" Visible="@context.HasChild" />
+                <MudIcon Icon="@context.Icon" Class="ml-0 mr-2" Color="@Color.Default" />
+                <MudText>@context.Text</MudText>
+            </Content>
+        </MudTreeViewItem>
+    </ItemTemplate>
+</MudTreeView>
+
+@code
+{
+    /* NOTE: MudTreeView does not support setting a SelectedValue. So you cannot update the state programmatically. */
+
+    private TreeItemData? selectedItem;
+    private Dictionary<Node, TreeItemData> treeItems = new Dictionary<Node, TreeItemData>();
+    private HashSet<TreeItemData> rootItems = new HashSet<TreeItemData>();
+
+    [Parameter]
+    [EditorRequired]
+    public Node RootNode { get; set; } = null!;
+
+    [Parameter]
+    public Node? SelectedNode { get; set; } = null!;
+
+    [Parameter]
+    public EventCallback<Node?> SelectedNodeChanged { get; set; }
+
+    protected override void OnInitialized()
+    {
+        var rootItem = CreateAndAppendTreeItemData(null, RootNode);
+
+        rootItems.Add(rootItem);
+
+        var tree = RootNode.Tree;
+
+        if (tree is not null)
+        {
+            tree.NodeAdded += NodeAdded;
+            tree.NodeRemoved += NodeRemoved;
+        }
+    }
+
+    public override Task SetParametersAsync(ParameterView parameters)
+    {
+        if (parameters.TryGetValue<Node>(nameof(SelectedNode), out var node))
+        {
+            if (treeItems.TryGetValue(node, out var treeItem))
+            {
+                selectedItem = treeItem;
+
+                // My attempt at setting SelectedItem
+
+                foreach(var (_, ti) in treeItems)
+                {
+                    ti.IsSelected = false;
+                }
+
+                selectedItem.IsExpanded = true;
+                selectedItem.IsSelected = true;
+
+                StateHasChanged();
+            }
+        }
+
+        return base.SetParametersAsync(parameters);
+    }
+
+    public void Dispose()
+    {
+        var tree = RootNode.Tree;
+
+        if (tree is not null)
+        {
+            tree.NodeAdded -= NodeAdded;
+            tree.NodeRemoved -= NodeRemoved;
+        }
+    }
+
+    private TreeItemData CreateAndAppendTreeItemData(TreeItemData? treeItemData, Node node)
+    {
+        var item = CreateTreeItem(node);
+
+        if (node.IsDirectory)
+        {
+            foreach (var childNode in node.ChildNodes)
+            {
+                CreateAndAppendTreeItemData(item, childNode);
+            }
+        }
+
+        if (treeItemData is not null)
+        {
+            treeItemData.TreeItems.Add(item);
+        }
+
+        treeItems.Add(item.Node!, item);
+
+        return item;
+    }
+
+    private TreeItemData CreateTreeItem(Node node)
+    {
+        return new TreeItemData(node.Name, node.IsFile ? Icons.Custom.FileFormats.FileDocument : Icons.Filled.Folder)
+        {
+            Node = node
+        };
+    }
+
+    private async void OnItemSelected(TreeItemData treeItemData)
+    {
+        if (treeItemData is null) return;
+
+        selectedItem = treeItemData;
+
+        SelectedNode = treeItemData.Node;
+        await SelectedNodeChanged.InvokeAsync(SelectedNode);
+    }
+
+    private void NodeAdded(object? sender, ChildNodeEventArgs eventArgs)
+    {
+        var parentItem = treeItems[eventArgs.ParentNode];
+
+        var newTreeItem = CreateTreeItem(eventArgs.Node);
+        parentItem.TreeItems.Add(newTreeItem);
+
+        treeItems.Add(eventArgs.Node, newTreeItem);
+
+
+        // The "StateHasChanged" is required since the Blazor doesn't know the state has changed in a regular .NET event callback.
+        // Usually in Blazor handles this automatically when EventCallback is used.
+
+        StateHasChanged();
+    }
+
+    private void NodeRemoved(object? sender, ChildNodeEventArgs eventArgs)
+    {
+        var parentItem = treeItems[eventArgs.ParentNode];
+        var treeItem = treeItems[eventArgs.Node];
+
+        parentItem.TreeItems.Remove(treeItem);
+
+        // If the current SelectedNode gets deleted, set its Parent as SelectedNode.
+
+        if(eventArgs.Node == SelectedNode)
+        {
+            SelectedNode = parentItem.Node;
+        }
+
+        treeItems.Remove(eventArgs.Node);
+
+        StateHasChanged();
+    }
+
+    public class TreeItemData
+    {
+        public string Text { get; set; }
+
+        public string Icon { get; set; }
+
+        public bool IsSelected { get; set; }
+
+        public bool IsExpanded { get; set; } = true;
+
+        public bool HasChild => TreeItems is not null && TreeItems.Count > 0;
+
+        public HashSet<TreeItemData> TreeItems { get; set; } = new HashSet<TreeItemData>();
+
+        public TreeItemData(string text, string icon)
+        {
+            Text = text;
+            Icon = icon;
+        }
+
+        public Node? Node { get; set; }
+    }
+}

@@ -1,0 +1,218 @@
+﻿@inject IDialogService DialogService
+
+@if (CurrentNode is not null)
+{
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" sm="8" md="8">
+            <div class="my-4">
+                @if (CurrentNode.IsDirectory)
+                {
+                    <MudButton StartIcon="@Icons.Material.Filled.Add" OnClick="CreateDirectory">Directory</MudButton>
+
+                    <MudButton StartIcon="@Icons.Material.Filled.Add" OnClick="CreateFile">File</MudButton>
+                }
+
+                @if (CurrentNode.Parent != null)
+                {
+                    <MudButton StartIcon="@Icons.Material.Filled.Delete" OnClick="DeleteItem">Delete</MudButton>
+                }
+            </div>
+        </MudItem>
+        <MudItem xs="12" sm="4" md="4">
+            <MudSelect T="FileViewMode" Variant="Variant.Outlined" Label="Mode" Value="Mode" ValueChanged="(v) => { Mode = v; ModeChanged.InvokeAsync(v); }">
+                <MudSelectItem Value="@FileViewMode.Grid">
+                    <MudIcon Icon="@Icons.Material.Filled.GridView" Size="Size.Small" Class="mr-1" Color="@Color.Default"/> Grid
+                </MudSelectItem>
+                <MudSelectItem Value="@FileViewMode.List">
+                    <MudIcon Icon="@Icons.Material.Filled.List" Size="Size.Small" Class="mr-1" Color="@Color.Default"/> List
+                </MudSelectItem>
+            </MudSelect>
+        </MudItem>
+    </MudGrid>
+
+    @if (CurrentNode.IsFile)
+    {
+        <FileViewFileItem Node="CurrentNode" />
+    }
+    else if (CurrentNode.IsDirectory)
+    {
+        @if (Mode == FileViewMode.Grid)
+        {
+            <div class="box">
+                <MudText Typo="Typo.h5" GutterBottom="true">@CurrentNode.Name</MudText>
+
+                <FileViewDirectoryGrid Node="CurrentNode" OnItemClicked="async (node) => await OnItemClicked(node)" />
+            </div>
+        }
+        else if (Mode == FileViewMode.List)
+        { 
+            <MudTable Items="CurrentNode.ChildNodes" Hover="true" Breakpoint="Breakpoint.Sm" Loading="false" LoadingProgressColor="Color.Info" OnRowClick="async (TableRowClickEventArgs<Node> e) => await OnItemClicked(e.Item)">
+                <HeaderContent>
+                    <MudTh></MudTh>
+                    <MudTh><MudTableSortLabel InitialDirection="SortDirection.Ascending" SortBy="new Func<Node, object>(x => x.Name)">Name</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortBy="new Func<Node, object>(x => x.IsDirectory)">Type</MudTableSortLabel></MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate Context="childNode">
+                    <MudTd DataLabel="">
+                        @if (childNode.IsFile)
+                        {
+                            <MudIcon Icon="@Icons.Custom.FileFormats.FileDocument" Class="ml-0 mr-2" Color="@Color.Default" />
+                        }
+                        else if (childNode.IsDirectory)
+                        {
+                            <MudIcon Icon="@Icons.Filled.Folder" Class="ml-0 mr-2" Color="@Color.Default" />
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="Name">@childNode.Name</MudTd>
+                    <MudTd DataLabel="Type">@(childNode.IsFile ? "File" : "Directory")</MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" OnClick="async () => await DeleteItem(childNode)" /> 
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    }
+}
+
+@code
+{
+    [Parameter]
+    public Node CurrentNode { get; set; } = null!;
+
+    [Parameter]
+    public EventCallback<Node> CurrentNodeChanged { get; set; }
+
+    [Parameter]
+    public FileViewMode Mode { get; set; }
+
+    [Parameter]
+    public EventCallback<FileViewMode> ModeChanged { get; set; }
+
+    [Parameter]
+    public bool CanGoBack
+    {
+        get => CurrentNode is not null && CurrentNode.Parent is not null;
+        set => throw new NotSupportedException();
+    }
+
+    [Parameter]
+    public EventCallback<bool> CanGoBackChanged { get; set; }
+
+    // This was to make the CanGoBackChanged to trigger when CurrentNode changed.
+    /*
+    public override async Task SetParametersAsync(ParameterView parameters)
+    {
+        if (parameters.TryGetValue<Node>(nameof(CurrentNode), out var node))
+        {
+            await CanGoBackChanged.InvokeAsync(CanGoBack);
+
+            StateHasChanged();
+        }
+
+        await base.SetParametersAsync(parameters);
+    }
+    */
+
+    public async Task GoBack()
+    {
+        if(!CanGoBack)
+        {
+            throw new Exception("No parent to go back to.");
+        }
+
+        await SetCurrentNode(CurrentNode.Parent!);
+
+        StateHasChanged();
+    }
+
+    private async Task SetCurrentNode(Node node)
+    {
+        CurrentNode = node;
+        await CurrentNodeChanged.InvokeAsync(node);
+
+        await CanGoBackChanged.InvokeAsync(CanGoBack);
+    }
+
+    private async Task OnItemClicked(Node node)
+    {
+        await SetCurrentNode(node);
+    }
+
+    private async Task CreateDirectory()
+    {
+        var dialogReference = DialogService.Show<NewItemDialog>("New Directory");
+        var result = await dialogReference.Result;
+        if (result.Cancelled)
+        {
+            return;
+        }
+
+        try
+        {
+            CurrentNode?.CreateDirectory((string)result.Data);
+        }
+        catch (Exception)
+        {
+            // TODO: Handled exceptions better
+
+            await DialogService.ShowMessageBox(
+              "Error",
+              $"An item named \"{result.Data}\" already exists.");
+        }
+    }
+
+    private async Task CreateFile()
+    {
+        var dialogReference = DialogService.Show<NewItemDialog>("New File");
+        var result = await dialogReference.Result;
+        if (result.Cancelled)
+        {
+            return;
+        }
+
+        try
+        {
+            CurrentNode?.CreateFile((string)result.Data);
+        }
+        catch(Exception)
+        {
+            // TODO: Handled exceptions better
+
+            await DialogService.ShowMessageBox(
+              "Error",
+              $"An item named \"{result.Data}\" already exists.");
+        }
+    }
+
+    private async Task DeleteItem()
+    {
+        await DeleteItem(CurrentNode);
+    }
+
+    private async Task DeleteItem(Node node)
+    {
+        var itemName = node.Name;
+
+        DialogParameters dialogParameters = new();
+        dialogParameters.Add(nameof(DeleteItemDialog.ItemName), itemName);
+
+        var dialogReference = DialogService.Show<DeleteItemDialog>($"Delete?", dialogParameters);
+        var result = await dialogReference.Result;
+        if (result.Cancelled)
+        {
+            return;
+        }
+
+        var parent = node.Parent;
+
+        node.Detach();
+
+        if(CurrentNode == node)
+        {
+            // Set CurrentNode to parent of deleted Node.
+
+            await SetCurrentNode(parent!);
+        }
+    }
+}

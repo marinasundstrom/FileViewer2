@@ -1,0 +1,11 @@
+﻿<MudPaper Class="d-flex align-center justify-center mud-width-full py-8">
+    <MudIcon Icon="@Icons.Custom.FileFormats.FileDocument" Class="ml-0 mr-2" Color="@Color.Default" />
+    @Node.Name
+</MudPaper>
+
+@code {
+    [Parameter]
+    [EditorRequired]
+    public Node Node { get; set; } = null!;
+}
+

@@ -1,0 +1,43 @@
+﻿@page "/"
+@inject HttpClient Http
+@inject NodeTreeBuilder NodeTreeBuilder
+ 
+<PageTitle>Index</PageTitle>
+
+@if (currentNode is not null)
+{
+    <MudText Typo="Typo.h3" Align="Align.Center" GutterBottom="true">Files</MudText>
+
+    <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Disabled="@(!canGoBack)" OnClick="async () => await fileView!.GoBack()">Go back</MudButton>
+    
+    <MudGrid Spacing="6" Class="mt-16">
+        <MudItem xs="12" sm="12" md="5">
+            <MudPaper Class="d-flex flex-column pt-2" Style="height:100%;" Outlined="true">
+                <FileTreeView RootNode="currentNode" @bind-SelectedNode="currentNode" />
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" sm="12" md="7">
+            <FileView @ref="fileView" @bind-CurrentNode="currentNode" @bind-Mode="mode" CanGoBackChanged="(v) => canGoBack = v" />
+        </MudItem>
+    </MudGrid>
+}
+
+@code
+{
+    private IEnumerable<string>? paths;
+    private Node? rootNode;
+    private Node? currentNode;
+    private FileViewMode mode = FileViewMode.Grid;
+
+    FileView? fileView;
+    bool canGoBack;
+
+    protected override async Task OnInitializedAsync()
+    {
+        paths = await Http.GetFromJsonAsync<IEnumerable<string>>("/data/tree.json");
+        rootNode = NodeTreeBuilder.BuildTree(paths!);
+        new NodeTree(rootNode);
+        currentNode = rootNode;
+    }
+}

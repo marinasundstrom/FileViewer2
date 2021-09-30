@@ -1,0 +1,28 @@
+﻿<MudGrid Spacing="3">
+    @foreach (var childNode in Node.ChildNodes)
+    {
+        <MudItem xs="6" sm="6">
+            <MudPaper Class="d-flex align-center justify-center mud-width-full py-8" Style="cursor: pointer" @onclick="async () => await OnItemClicked.InvokeAsync(childNode)">
+                @if (childNode.IsFile)
+                {
+                    <MudIcon Icon="@Icons.Custom.FileFormats.FileDocument" Class="ml-0 mr-2" Color="@Color.Default" />
+                }
+                else if (childNode.IsDirectory)
+                {
+                    <MudIcon Icon="@Icons.Filled.Folder" Class="ml-0 mr-2" Color="@Color.Default" />
+                }
+                @childNode.Name
+            </MudPaper>
+        </MudItem>
+    }
+</MudGrid>
+
+@code {
+    [Parameter]
+    [EditorRequired]
+    public Node Node { get; set; } = null!;
+
+    [Parameter]
+    public EventCallback<Node> OnItemClicked { get; set; }
+}
+

@@ -33,6 +33,9 @@ Items can be created and deleted from the UI.
 
 Watch out for comments in code!
 
+## Proposed improvements
+* Ability to rename files and directories.
+
 ## Build instructions
 
 You need to have .NET 6 SDK installed to build this project.

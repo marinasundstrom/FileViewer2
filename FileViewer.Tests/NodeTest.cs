@@ -23,7 +23,7 @@ public class NodeTest
     }
 
     [Fact(DisplayName = "Should be possible to create children for directory node")]
-    public void ShoudBePossiblToCreateChildrenForDirectoryNode()
+    public void ShouldBePossiblToCreateChildrenForDirectoryNode()
     {
         Node node = new Node("directory", false);
 
@@ -44,5 +44,25 @@ public class NodeTest
         childFile.Name.ShouldBe("childFile");
         childFile.IsFile.ShouldBeTrue();
         childFile.Parent.ShouldBe(node);
+    }
+
+    [Fact(DisplayName = "Should be able to detach node from parent")]
+    public void ShouldBeAbleToDetachNodeFromParent()
+    {
+        Node node = new Node("directory", false);
+
+        var childDir = node.CreateDirectory("childDir");
+
+        var childFile = node.CreateFile("childFile");
+
+        childDir.Detach();
+        childDir.Parent.ShouldBeNull();
+
+        node.GetChildNode("childDir").ShouldBeNull();
+
+        childFile.Detach();
+        childFile.Parent.ShouldBeNull();
+
+        node.GetChildNode("childFile").ShouldBeNull();
     }
 }

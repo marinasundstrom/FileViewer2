@@ -35,16 +35,18 @@ public class Node
     public Node? GetChildNode(string name) => ChildNodes.FirstOrDefault(x => x.Name == name);
 
 
-    public void CreateFile(string name)
+    public Node CreateFile(string name)
     {
         var node = new Node(name, true);
         AttachChildNode(node);
+        return node;
     }
 
-    public void CreateDirectory(string name)
+    public Node CreateDirectory(string name)
     {
         var node = new Node(name, false);
         AttachChildNode(node);
+        return node;
     }
 
     public void Detach()

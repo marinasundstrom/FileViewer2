@@ -29,7 +29,7 @@ Items can be created and deleted from the UI.
 
 ## Issues
 * When focusing an item in the Item View, the corresponding item does not get selected in the Tree View.
-* The "Go Back" does not get enabled or disabled when navigating using the tree view.
+* The "Go Back" disabled/enabled state does not get updated when navigating using the tree view.
 
 Watch out for comments in code!
 

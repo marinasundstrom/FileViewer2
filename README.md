@@ -35,6 +35,7 @@ Watch out for comments in code!
 
 ## Proposed improvements
 * Ability to rename files and directories.
+* UI
 
 ## Build instructions
 

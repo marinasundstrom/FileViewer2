@@ -55,12 +55,12 @@ public class NodeTest
 
         var childFile = node.CreateFile("childFile");
 
-        childDir.Detach();
+        childDir.Remove();
         childDir.Parent.ShouldBeNull();
 
         node.GetChildNode("childDir").ShouldBeNull();
 
-        childFile.Detach();
+        childFile.Remove();
         childFile.Parent.ShouldBeNull();
 
         node.GetChildNode("childFile").ShouldBeNull();

@@ -42,6 +42,7 @@
         {
             tree.NodeAdded += NodeAdded;
             tree.NodeRemoved += NodeRemoved;
+            tree.NodeRenamed += NodeRenamed;
         }
     }
 
@@ -78,6 +79,7 @@
         {
             tree.NodeAdded -= NodeAdded;
             tree.NodeRemoved -= NodeRemoved;
+            tree.NodeRenamed -= NodeRenamed;
         }
     }
 
@@ -152,6 +154,15 @@
         }
 
         treeItems.Remove(eventArgs.Node);
+
+        StateHasChanged();
+    }
+
+    private void NodeRenamed(object? sender, NodeRenamedEventArgs eventArgs)
+    {
+        var treeItem = treeItems[eventArgs.Node];
+
+        treeItem.Text = eventArgs.NewName;
 
         StateHasChanged();
     }

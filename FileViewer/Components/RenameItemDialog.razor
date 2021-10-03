@@ -1,0 +1,38 @@
+﻿@using System.ComponentModel.DataAnnotations
+
+
+<EditForm Model="@model" OnValidSubmit="OnValidSubmit">
+    <MudDialog>
+        <DialogContent>
+            <DataAnnotationsValidator />
+            <MudTextField Label="Name" HelperText="A name new for this item"
+                          @bind-Value="model.Name" For="@(() => model.Name)" />
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="Cancel">Cancel</MudButton>
+            <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary">Rename</MudButton>
+        </DialogActions>
+    </MudDialog>
+</EditForm>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = null!;
+
+    FormModel model = new FormModel();
+
+    public class FormModel
+    {
+        [Required]
+        public string? Name { get; set; }
+
+    }
+
+    private void OnValidSubmit(EditContext context)
+    {
+        StateHasChanged();
+
+        MudDialog.Close(DialogResult.Ok(model.Name));
+    }
+
+    void Cancel() => MudDialog.Cancel();
+}

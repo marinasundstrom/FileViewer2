@@ -1,9 +1,13 @@
 ﻿namespace FileViewer;
 
+using System.Text;
+
 public class Node
 {
     private List<Node>? childNodes;
     internal NodeTree? tree;
+
+    string? fullPathCache;
 
     public Node(string name, bool isFile)
     {
@@ -11,7 +15,7 @@ public class Node
         IsFile = isFile;
     }
 
-    public string Name { get; }
+    public string Name { get; private set; }
 
     public bool IsFile { get; }
 
@@ -49,7 +53,29 @@ public class Node
         return node;
     }
 
-    public void Detach()
+    public void Rename(string newName)
+    {
+        var oldName = Name;
+
+        Name = newName;
+
+        InvalidateFullPath();
+
+        Tree?.NotifyNodeRenamed(this, oldName, newName);
+    }
+
+    public void MoveTo(Node newParentDir)
+    {
+        if (!newParentDir.IsDirectory) throw new Exception("Node can only be placed in a directory");
+
+        this.Parent?.DetachChildNode(this);
+
+        newParentDir?.AttachChildNode(this);
+
+        InvalidateFullPath();
+    }
+
+    public void Remove()
     {
         if (Parent is null) throw new Exception("Cannot detach a node without a Parent");
 
@@ -94,5 +120,41 @@ public class Node
             return this;
 
         return Parent.GetRootNode();
+    }
+
+    public string GetFullPath() 
+    {
+        if (fullPathCache is null)
+        {
+            StringBuilder sb = new();
+            BuildFullPath(sb);
+        }
+
+        if (fullPathCache is null)
+            throw new Exception("Should never occur");
+
+        return fullPathCache;
+    }
+
+    private void BuildFullPath(StringBuilder sb) 
+    {
+        if (Parent is not null)
+            Parent.BuildFullPath(sb);
+
+        sb.Append('/');
+
+        sb.Append(Name);
+
+        fullPathCache = sb.ToString();
+    }
+
+    void InvalidateFullPath()
+    {
+        fullPathCache = null;
+
+        foreach (var childNode in ChildNodes)
+        {
+            childNode.InvalidateFullPath();
+        }
     }
 }

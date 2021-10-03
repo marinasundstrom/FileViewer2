@@ -20,6 +20,8 @@ public class NodeTree
 
     public event EventHandler<ChildNodeEventArgs>? NodeRemoved;
 
+    public event EventHandler<NodeRenamedEventArgs>? NodeRenamed;
+
     internal void NotifyNodeAdded(Node parentNode, Node node)
     {
         NodeAdded?.Invoke(this, new ChildNodeEventArgs(parentNode, node));
@@ -28,6 +30,27 @@ public class NodeTree
     internal void NotifyNodeRemoved(Node parentNode, Node node)
     {
         NodeRemoved?.Invoke(this, new ChildNodeEventArgs(parentNode, node));
+    }
+
+    internal void NotifyNodeRenamed(Node node, string oldName, string newName)
+    {
+        NodeRenamed?.Invoke(this, new NodeRenamedEventArgs(node, oldName, newName));
+    }
+}
+
+public class NodeRenamedEventArgs : EventArgs
+{
+    public Node Node { get; }
+
+    public string OldName { get; }
+
+    public string NewName { get; }
+
+    public NodeRenamedEventArgs(Node node, string oldName, string newName)
+    {
+        Node = node;
+        OldName = oldName;
+        NewName = newName;
     }
 }
 

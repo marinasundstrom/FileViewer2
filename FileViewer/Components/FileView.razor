@@ -2,6 +2,10 @@
 
 @if (CurrentNode is not null)
 {
+    <MudBreadcrumbs Items="breadcrumbItems"></MudBreadcrumbs>
+
+    @* <MudText Typo="Typo.body1" GutterBottom="true">@CurrentNode.GetFullPath()</MudText> *@
+
     <MudGrid Class="mb-4">
         <MudItem xs="12" sm="8" md="8">
             <div class="my-4">
@@ -12,6 +16,8 @@
                     <MudButton StartIcon="@Icons.Material.Filled.Add" OnClick="CreateFile">File</MudButton>
                 }
 
+                <MudButton StartIcon="@Icons.Material.Filled.Edit" OnClick="Rename">Rename</MudButton>
+
                 @if (CurrentNode.Parent != null)
                 {
                     <MudButton StartIcon="@Icons.Material.Filled.Delete" OnClick="DeleteItem">Delete</MudButton>
@@ -21,10 +27,10 @@
         <MudItem xs="12" sm="4" md="4">
             <MudSelect T="FileViewMode" Variant="Variant.Outlined" Label="Mode" Value="Mode" ValueChanged="(v) => { Mode = v; ModeChanged.InvokeAsync(v); }">
                 <MudSelectItem Value="@FileViewMode.Grid">
-                    <MudIcon Icon="@Icons.Material.Filled.GridView" Size="Size.Small" Class="mr-1" Color="@Color.Default"/> Grid
+                    <MudIcon Icon="@Icons.Material.Filled.GridView" Size="Size.Small" Class="mr-1" Color="@Color.Default" /> Grid
                 </MudSelectItem>
                 <MudSelectItem Value="@FileViewMode.List">
-                    <MudIcon Icon="@Icons.Material.Filled.List" Size="Size.Small" Class="mr-1" Color="@Color.Default"/> List
+                    <MudIcon Icon="@Icons.Material.Filled.List" Size="Size.Small" Class="mr-1" Color="@Color.Default" /> List
                 </MudSelectItem>
             </MudSelect>
         </MudItem>
@@ -45,7 +51,7 @@
             </div>
         }
         else if (Mode == FileViewMode.List)
-        { 
+        {
             <MudTable Items="CurrentNode.ChildNodes" Hover="true" Breakpoint="Breakpoint.Sm" Loading="false" LoadingProgressColor="Color.Info" OnRowClick="async (TableRowClickEventArgs<Node> e) => await OnItemClicked(e.Item)">
                 <HeaderContent>
                     <MudTh></MudTh>
@@ -56,18 +62,18 @@
                 <RowTemplate Context="childNode">
                     <MudTd DataLabel="">
                         @if (childNode.IsFile)
-                        {
+                                    {
                             <MudIcon Icon="@Icons.Custom.FileFormats.FileDocument" Class="ml-0 mr-2" Color="@Color.Default" />
-                        }
-                        else if (childNode.IsDirectory)
-                        {
+                                    }
+                                    else if (childNode.IsDirectory)
+                                    {
                             <MudIcon Icon="@Icons.Filled.Folder" Class="ml-0 mr-2" Color="@Color.Default" />
-                        }
+                                    }
                     </MudTd>
                     <MudTd DataLabel="Name">@childNode.Name</MudTd>
                     <MudTd DataLabel="Type">@(childNode.IsFile ? "File" : "Directory")</MudTd>
                     <MudTd>
-                        <MudIconButton Icon="@Icons.Material.Filled.Delete" OnClick="async () => await DeleteItem(childNode)" /> 
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" OnClick="async () => await DeleteItem(childNode)" />
                     </MudTd>
                 </RowTemplate>
             </MudTable>
@@ -77,6 +83,9 @@
 
 @code
 {
+
+    private List<BreadcrumbItem> breadcrumbItems = new List<BreadcrumbItem>();
+
     [Parameter]
     public Node CurrentNode { get; set; } = null!;
 
@@ -99,24 +108,20 @@
     [Parameter]
     public EventCallback<bool> CanGoBackChanged { get; set; }
 
-    // This was to make the CanGoBackChanged to trigger when CurrentNode changed.
-    /*
+
     public override async Task SetParametersAsync(ParameterView parameters)
     {
         if (parameters.TryGetValue<Node>(nameof(CurrentNode), out var node))
         {
-            await CanGoBackChanged.InvokeAsync(CanGoBack);
-
-            StateHasChanged();
+            UpdateBreadcrumb(CurrentNode, node);
         }
 
         await base.SetParametersAsync(parameters);
     }
-    */
 
     public async Task GoBack()
     {
-        if(!CanGoBack)
+        if (!CanGoBack)
         {
             throw new Exception("No parent to go back to.");
         }
@@ -128,10 +133,49 @@
 
     private async Task SetCurrentNode(Node node)
     {
+        var oldNode = CurrentNode;
+
         CurrentNode = node;
+
         await CurrentNodeChanged.InvokeAsync(node);
 
+        UpdateBreadcrumb(oldNode, CurrentNode);
+
         await CanGoBackChanged.InvokeAsync(CanGoBack);
+    }
+
+
+    private void UpdateBreadcrumb()
+    {
+        UpdateBreadcrumb(null, CurrentNode);
+
+        StateHasChanged();
+    }
+
+    private void UpdateBreadcrumb(Node? oldNode, Node newNode)
+    {
+        if (newNode == oldNode?.Parent)
+        {
+            breadcrumbItems.Remove(breadcrumbItems.Last());
+
+            return;
+        }
+
+        breadcrumbItems.Clear();
+
+        CreateBreadCrumb(newNode);
+
+        StateHasChanged();
+    }
+
+    private void CreateBreadCrumb(Node node)
+    {
+        if (node.Parent is not null)
+        {
+            CreateBreadCrumb(node.Parent);
+        }
+
+        breadcrumbItems.Add(new BreadcrumbItem(node.Name, href: "#", icon: node.IsDirectory ? Icons.Material.Filled.Folder : Icons.Custom.FileFormats.FileDocument));
     }
 
     private async Task OnItemClicked(Node node)
@@ -175,13 +219,43 @@
         {
             CurrentNode?.CreateFile((string)result.Data);
         }
-        catch(Exception)
+        catch (Exception)
         {
             // TODO: Handled exceptions better
 
             await DialogService.ShowMessageBox(
               "Error",
               $"An item named \"{result.Data}\" already exists.");
+        }
+    }
+
+    private async Task Rename()
+    {
+        var dialogReference = DialogService.Show<RenameItemDialog>("Rename item");
+        var result = await dialogReference.Result;
+        if (result.Cancelled)
+        {
+            return;
+        }
+
+        try
+        {
+            var newName = (string)result.Data;
+
+            if (newName != CurrentNode.Name)
+            {
+                CurrentNode?.Rename(newName);
+            }
+
+            UpdateBreadcrumb();
+        }
+        catch (Exception)
+        {
+            // TODO: Handled exceptions better
+
+            await DialogService.ShowMessageBox(
+              "Error",
+              $"Something went wrong.");
         }
     }
 
@@ -206,9 +280,9 @@
 
         var parent = node.Parent;
 
-        node.Detach();
+        node.Remove();
 
-        if(CurrentNode == node)
+        if (CurrentNode == node)
         {
             // Set CurrentNode to parent of deleted Node.
 

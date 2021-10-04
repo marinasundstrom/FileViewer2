@@ -48,3 +48,21 @@ In the terminal, while in ```FileViewer/FileViewer``` directory, run the followi
 ```sh
 dotnet run
 ```
+
+### Tests
+
+To run tests, navigate to ```FileViewer/FileViewer.Tests```, and run:
+
+```sh
+dotnet test
+```
+
+### Edit the code
+
+This solution is based on .NET 6, which is supported by the following editors:
+
+* Visual Studio 2022 Preview 
+* Visual Studio for Mac 2022 Preview
+* Visual Studio (VS) Code
+
+You can of course edit the files in Notepad or Emacs. :) 

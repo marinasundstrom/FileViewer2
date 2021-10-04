@@ -43,7 +43,7 @@ You need to have .NET 6 SDK installed to build this project.
 
 No other dependencies required. Not even Node.
 
-In the terminal, while in ```FileViewer/FileViewer``` directory, run the following command:
+In the terminal, while in ```FileViewer``` directory, run the following command:
 
 ```sh
 dotnet run
@@ -51,7 +51,7 @@ dotnet run
 
 ### Tests
 
-To run tests, navigate to ```FileViewer/FileViewer.Tests```, and run:
+To run tests, navigate to ```FileViewer.Tests```, and run:
 
 ```sh
 dotnet test
